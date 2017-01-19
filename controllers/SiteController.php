@@ -2,15 +2,17 @@
 
 namespace app\controllers;
 
+use app\models\Dishes;
 use Yii;
+use yii\data\Pagination;
 use yii\filters\AccessControl;
-use yii\web\Controller;
 use yii\filters\VerbFilter;
 use app\models\LoginForm;
-use app\models\ContactForm;
 
-class SiteController extends Controller
+class SiteController extends MainController
 {
+    public $layout = 'site';
+
     /**
      * @inheritdoc
      */
@@ -38,29 +40,28 @@ class SiteController extends Controller
     }
 
     /**
-     * @inheritdoc
-     */
-    public function actions()
-    {
-        return [
-            'error' => [
-                'class' => 'yii\web\ErrorAction',
-            ],
-            'captcha' => [
-                'class' => 'yii\captcha\CaptchaAction',
-                'fixedVerifyCode' => YII_ENV_TEST ? 'testme' : null,
-            ],
-        ];
-    }
-
-    /**
      * Displays homepage.
      *
      * @return string
      */
     public function actionIndex()
     {
-        return $this->render('index');
+        $query = Dishes::get_with(['ingredients'])->find();
+
+        $pagination = new Pagination([
+            'defaultPageSize' => 15,
+            'totalCount' => $query->count()
+        ]);
+
+        $dishes = $query
+            ->offset($pagination->offset)
+            ->limit($pagination->limit)
+            ->all();
+
+        return $this->render('index', [
+            'dishes' => $dishes,
+            'pagination' => $pagination
+        ]);
     }
 
     /**
@@ -95,31 +96,4 @@ class SiteController extends Controller
         return $this->goHome();
     }
 
-    /**
-     * Displays contact page.
-     *
-     * @return string
-     */
-    public function actionContact()
-    {
-        $model = new ContactForm();
-        if ($model->load(Yii::$app->request->post()) && $model->contact(Yii::$app->params['adminEmail'])) {
-            Yii::$app->session->setFlash('contactFormSubmitted');
-
-            return $this->refresh();
-        }
-        return $this->render('contact', [
-            'model' => $model,
-        ]);
-    }
-
-    /**
-     * Displays about page.
-     *
-     * @return string
-     */
-    public function actionAbout()
-    {
-        return $this->render('about');
-    }
 }
